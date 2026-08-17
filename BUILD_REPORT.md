@@ -172,3 +172,10 @@ Test at minimum:
 16. Run Play Console pre-launch/security checks.
 
 Those are verification tasks, not claims that they have already passed in this environment.
+
+
+## CI lint remediation
+
+The notification layer now checks `POST_NOTIFICATIONS` availability before posting and catches a possible `SecurityException` race. Reminder broadcast delivery follows the same fail-closed behavior. No lint baseline or blanket suppression was added.
+
+The build system was moved from AGP 8.7.3 to AGP 8.11.0 with Gradle 8.13 because AGP 8.11 officially supports compileSdk 36.
