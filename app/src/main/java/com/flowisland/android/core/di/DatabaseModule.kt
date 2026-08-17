@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.flowisland.android.core.database.ActivityHistoryDao
+import com.flowisland.android.core.database.ActiveActivityDao
 import com.flowisland.android.core.database.AppDatabase
 import com.flowisland.android.core.database.CookingDao
 import com.flowisland.android.core.database.DeliveryDao
