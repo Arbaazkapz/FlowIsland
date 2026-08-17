@@ -79,16 +79,7 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
                     .addAction(R.drawable.ic_notification_flowisland, context.getString(R.string.action_snooze), snoozeIntent)
                     .build()
 
-                val notificationManager = NotificationManagerCompat.from(context)
-                if (notificationManager.areNotificationsEnabled()) {
-                    try {
-                        notificationManager.notify(reminderId.hashCode(), notification)
-                    } catch (_: SecurityException) {
-                        // POST_NOTIFICATIONS may be revoked between the check and notify().
-                        // Never crash a reminder broadcast because the optional notification
-                        // surface is unavailable.
-                    }
-                }
+                NotificationManagerCompat.from(context).notify(reminderId.hashCode(), notification)
             } finally {
                 pendingResult.finish()
             }

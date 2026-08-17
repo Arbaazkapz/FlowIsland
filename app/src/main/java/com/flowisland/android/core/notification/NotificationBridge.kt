@@ -58,7 +58,7 @@ class NotificationBridge @Inject constructor(@ApplicationContext private val con
             return
         }
         val notification = if (canUseLiveUpdate()) buildLiveUpdateNotification(state) else buildStandardNotification(state)
-        postNotification(notificationIdFor(state.id.value), notification)
+        NotificationManagerCompat.from(context).notify(notificationIdFor(state.id.value), notification)
     }
 
     fun cancel(activityId: String) {
@@ -181,24 +181,6 @@ class NotificationBridge @Inject constructor(@ApplicationContext private val con
             .setOngoing(false)
             .setAutoCancel(true)
             .setContentIntent(contentIntent(state))
-        postNotification(notificationIdFor(state.id.value), builder.build())
-    }
-
-    /**
-     * Android 13+ notification posting is a runtime-permission operation.
-     * Keep the check and the SecurityException guard next to the actual call so
-     * every notification path behaves safely when POST_NOTIFICATIONS is denied
-     * or revoked while the app is running.
-     */
-    private fun postNotification(notificationId: Int, notification: Notification) {
-        val manager = NotificationManagerCompat.from(context)
-        if (!manager.areNotificationsEnabled()) return
-        try {
-            manager.notify(notificationId, notification)
-        } catch (_: SecurityException) {
-            // Permission can be revoked between the check and the binder call.
-            // Notifications are non-critical to the core Activity Engine, so the
-            // correct production behavior is to fail closed without crashing.
-        }
+        NotificationManagerCompat.from(context).notify(notificationIdFor(state.id.value), builder.build())
     }
 }
