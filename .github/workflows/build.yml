@@ -2,9 +2,9 @@ name: FlowIsland Android CI
 
 on:
   push:
-    branches: [ "**" ]
+    branches: ["**"]
   pull_request:
-    branches: [ "**" ]
+    branches: ["**"]
   workflow_dispatch:
 
 permissions:
@@ -14,6 +14,7 @@ jobs:
   verify:
     name: Verify Android build
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,7 +23,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
           cache: gradle
 
       - name: Set up Android SDK
@@ -31,13 +32,13 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: "8.9"
 
       - name: Verify with unit tests and lint
-        run: gradle --no-daemon test lint
+        run: ./gradlew --no-daemon test lint
 
       - name: Build debug APK and AAB
-        run: gradle --no-daemon assembleDebug bundleDebug
+        run: ./gradlew --no-daemon assembleDebug bundleDebug
 
       - name: Upload debug artifacts
         uses: actions/upload-artifact@v4
@@ -49,9 +50,10 @@ jobs:
           if-no-files-found: error
 
   release:
-    name: Build signed release
+    name: Build release APK and AAB
     if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -60,7 +62,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
           cache: gradle
 
       - name: Set up Android SDK
@@ -69,30 +71,51 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: "8.9"
 
-      - name: Restore release keystore
+      # A release build is allowed to run without a signing key so developers
+      # can obtain and test an unsigned release artifact. A signed Play Store
+      # artifact is produced automatically when the four FLOWISLAND_* secrets
+      # are configured in GitHub.
+      - name: Check release signing configuration
+        id: signing
         env:
           KEYSTORE_B64: ${{ secrets.FLOWISLAND_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.FLOWISLAND_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.FLOWISLAND_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.FLOWISLAND_KEY_PASSWORD }}
         run: |
-          if [ -z "$KEYSTORE_B64" ]; then
-            echo "FLOWISLAND_KEYSTORE_BASE64 is required for a signed Play Store release."
-            exit 1
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/flowisland-release.jks"
+            echo "FLOWISLAND_KEYSTORE_PATH=$RUNNER_TEMP/flowisland-release.jks" >> "$GITHUB_ENV"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Release signing secrets are not configured. Building unsigned release APK/AAB for testing only."
           fi
-          echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/flowisland-release.jks"
-          echo "FLOWISLAND_KEYSTORE_PATH=$RUNNER_TEMP/flowisland-release.jks" >> "$GITHUB_ENV"
 
-      - name: Build signed release APK and AAB
+      - name: Build release
         env:
           FLOWISLAND_KEYSTORE_PASSWORD: ${{ secrets.FLOWISLAND_KEYSTORE_PASSWORD }}
           FLOWISLAND_KEY_ALIAS: ${{ secrets.FLOWISLAND_KEY_ALIAS }}
           FLOWISLAND_KEY_PASSWORD: ${{ secrets.FLOWISLAND_KEY_PASSWORD }}
-        run: gradle --no-daemon test lint assembleRelease bundleRelease
+        run: ./gradlew --no-daemon test lint assembleRelease bundleRelease
 
-      - name: Upload release artifacts
+      - name: Upload signed release artifacts
+        if: steps.signing.outputs.configured == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: flowisland-release
+          name: flowisland-release-signed
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+
+      - name: Upload unsigned release artifacts
+        if: steps.signing.outputs.configured != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: flowisland-release-unsigned-testing-only
           path: |
             app/build/outputs/apk/release/*.apk
             app/build/outputs/bundle/release/*.aab
