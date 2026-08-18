@@ -105,7 +105,19 @@ jobs:
           FLOWISLAND_KEYSTORE_PASSWORD: ${{ secrets.FLOWISLAND_KEYSTORE_PASSWORD }}
           FLOWISLAND_KEY_ALIAS: ${{ secrets.FLOWISLAND_KEY_ALIAS }}
           FLOWISLAND_KEY_PASSWORD: ${{ secrets.FLOWISLAND_KEY_PASSWORD }}
-        run: ./gradlew --no-daemon test lint assembleRelease bundleRelease
+        # Run sequentially, not as one combined command. test/lint compile the
+        # debug variant (kspDebugKotlin) and assembleRelease/bundleRelease
+        # compile the release variant (kspReleaseKotlin). Room's KSP processor
+        # writes both variants' schema JSON to the same room.schemaLocation
+        # path, so running them in one gradlew invocation lets Gradle
+        # parallelize the two KSP tasks and race on that file, intermittently
+        # failing release with "IllegalStateException: Empty schema file".
+        # Separate invocations guarantee only one variant compiles at a time.
+        run: |
+          ./gradlew --no-daemon test
+          ./gradlew --no-daemon lint
+          ./gradlew --no-daemon assembleRelease
+          ./gradlew --no-daemon bundleRelease
 
       - name: Upload signed release artifacts
         if: steps.signing.outputs.configured == 'true'
