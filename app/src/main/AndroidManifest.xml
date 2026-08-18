@@ -35,13 +35,20 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <!-- DEVIATION FROM DEFAULT PERMISSION LIST (documented in BUILD_REPORT.md):
-         Genuinely observing "is any media session currently active" system-wide is
-         only possible via NotificationListenerService + MediaSessionManager on
-         stock Android; there is no other public API. This is opt-in only, off by
-         default, explained in-app before the system settings screen opens, and the
-         Media activity type is simply unavailable if the user declines. -->
+         BIND_NOTIFICATION_LISTENER_SERVICE is TEMPORARILY REMOVED from this build.
+         Combined with SYSTEM_ALERT_WINDOW + location, it triggers Google Play
+         Protect's on-device stalkerware heuristic ("App blocked to protect your
+         device") on every sideloaded install for every user, not just once in CI.
+         Re-add once the app is distributed via Play Store (where Protect trusts
+         the binary) or once you've decided per-device Protect opt-out is
+         acceptable for your install base. The feature code in
+         feature/media/MediaSessionListenerService.kt is untouched; only the
+         manifest declaration is removed, so the service simply isn't
+         registered/reachable in this build. -->
+    <!--
     <uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
         tools:ignore="ProtectedPermissions" />
+    -->
 
     <application
         android:name=".FlowIslandApp"
@@ -79,10 +86,10 @@
                 android:value="Shows the user's currently running FlowIsland activity as a small floating control while other apps are in use, at the user's explicit request." />
         </service>
 
-        <!-- Opt-in media session observer. FlowIsland never requests this
-             automatically; the system's own "Notification access" screen is the
-             single grant point, and the user only lands there after tapping
-             "Enable media tracking" in Settings and reading the in-app disclosure. -->
+        <!-- Opt-in media session observer. Manifest entry removed for now — see
+             the BIND_NOTIFICATION_LISTENER_SERVICE comment above the top of this
+             file for why. Re-enable both together when re-adding this feature. -->
+        <!--
         <service
             android:name=".feature.media.MediaSessionListenerService"
             android:exported="true"
@@ -92,6 +99,7 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+        -->
 
         <receiver
             android:name=".core.notification.ActivityActionReceiver"

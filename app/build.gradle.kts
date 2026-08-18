@@ -8,13 +8,15 @@ plugins {
 
 android {
     namespace = "com.flowisland.android"
-    // Android 15 is the supported floor. Android 16 / API 36 is the target because
-    // Google Play requires new apps and updates to target API 36 from Aug 31 2026.
+    // targetSdk 36 (Android 16) satisfies Google Play's Aug 31 2026 target-API
+    // requirement. minSdk is kept low (26 = Android 8.0) so the app installs on
+    // the wide range of devices actually in use, unlike target/compile SDK,
+    // there's no Play Store rule forcing minSdk up.
     compileSdk = 36
 
     defaultConfig {
         applicationId = "com.flowisland.android"
-        minSdk = 35
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
